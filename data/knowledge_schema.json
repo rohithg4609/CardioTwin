@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CardioTwin knowledge-base entry",
+  "description": "Expected structure for future knowledge-base entries. Source fields are required. This file contains no medical facts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "category",
+    "title",
+    "summary",
+    "source_name",
+    "source_url"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for the entry."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "disease",
+        "symptom",
+        "red_flag",
+        "injury",
+        "diet_guidance",
+        "general_health_guidance"
+      ],
+      "description": "Allowed knowledge category. No medical content is stored in this schema file."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short human-readable title."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Non-diagnostic summary text for a future sourced entry."
+    },
+    "source_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the reliable source this entry will cite."
+    },
+    "source_url": {
+      "type": "string",
+      "minLength": 1,
+      "description": "URL of the reliable source this entry will cite."
+    }
+  }
+}

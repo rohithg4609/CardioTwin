@@ -1,0 +1,79 @@
+{
+  "collection": "diseases",
+  "entry_category": "disease",
+  "required_fields": [
+    "id",
+    "category",
+    "title",
+    "summary",
+    "source_name",
+    "source_url"
+  ],
+  "planned_optional_fields": [
+    "common_symptoms",
+    "risk_factors",
+    "relevant_measurements",
+    "warning_signs",
+    "general_lifestyle_information",
+    "when_medical_evaluation_is_appropriate"
+  ],
+  "entries": [
+    {
+      "id": "hypertension",
+      "category": "disease",
+      "title": "Hypertension",
+      "summary": "Hypertension, also called high blood pressure, is a condition in which blood pressure remains persistently elevated. It can occur without noticeable symptoms, so blood pressure measurement is important for detection.",
+
+      "common_symptoms": [
+        "Often no noticeable symptoms",
+        "Very high blood pressure may be associated with headache",
+        "Very high blood pressure may be associated with blurred or changed vision",
+        "Very high blood pressure may be associated with chest pain",
+        "Very high blood pressure may be associated with difficulty breathing"
+      ],
+
+      "risk_factors": [
+        "Older age",
+        "Family history of hypertension",
+        "Physical inactivity",
+        "High-salt or unhealthy diet",
+        "Tobacco use",
+        "Excessive alcohol use",
+        "Overweight or obesity",
+        "Diabetes",
+        "Kidney disease"
+      ],
+
+      "relevant_measurements": [
+        "Systolic blood pressure",
+        "Diastolic blood pressure",
+        "Blood pressure trend over time"
+      ],
+
+      "warning_signs": [
+        "Very high blood pressure together with severe headache",
+        "Very high blood pressure together with chest pain",
+        "Very high blood pressure together with difficulty breathing",
+        "Very high blood pressure together with vision changes",
+        "Very high blood pressure together with confusion"
+      ],
+
+      "general_lifestyle_information": [
+        "Regular blood pressure monitoring can help with detection and management.",
+        "A healthier diet with less salt can help manage blood pressure.",
+        "Regular physical activity can help support healthy blood pressure.",
+        "Avoiding tobacco can reduce cardiovascular risk.",
+        "Following a healthcare professional's advice is important when hypertension has been diagnosed."
+      ],
+
+      "when_medical_evaluation_is_appropriate": [
+        "Repeatedly elevated blood pressure should be discussed with a healthcare professional.",
+        "A healthcare professional should evaluate suspected hypertension rather than the AI system declaring a diagnosis.",
+        "Very high blood pressure with concerning symptoms requires urgent medical evaluation."
+      ],
+
+      "source_name": "World Health Organization",
+      "source_url": "https://www.who.int/news-room/fact-sheets/detail/hypertension"
+    }
+  ]
+}

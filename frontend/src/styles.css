@@ -461,3 +461,209 @@ h1, h2, h3 { font-family: 'Segoe UI', Inter, ui-sans-serif, system-ui, sans-seri
     flex-wrap: wrap;
   }
 }
+
+
+/* Live digital twin overview dashboard */
+.twin-dashboard {
+  display: grid;
+  gap: 1.15rem;
+  margin: 1.6rem 0 2rem;
+}
+.twin-dashboard-heading,
+.twin-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.twin-dashboard-heading h2,
+.twin-section-title h3,
+.twin-risk-card h3 {
+  margin: 0.2rem 0;
+}
+.twin-dashboard-heading p,
+.twin-patient-identity p {
+  margin: 0.35rem 0 0;
+  color: var(--muted, #64748b);
+}
+.twin-eyebrow {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--accent, #0f766e);
+}
+.twin-refresh-button {
+  border: 1px solid var(--border, #dbe3ea);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--surface, #fff);
+  color: var(--text, #172033);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.twin-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.twin-message,
+.twin-error {
+  padding: 1rem;
+  border: 1px solid var(--border, #dbe3ea);
+  border-radius: 0.9rem;
+  background: var(--surface, #fff);
+}
+.twin-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #9f3030;
+}
+.twin-error button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.twin-patient-strip {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem;
+  border: 1px solid var(--border, #dbe3ea);
+  border-radius: 1rem;
+  background: var(--surface, #fff);
+}
+.twin-avatar {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 3rem;
+  border-radius: 1rem;
+  background: var(--accent-soft, #e0f2f1);
+  color: var(--accent, #0f766e);
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.twin-patient-identity {
+  min-width: 0;
+  flex: 1;
+}
+.twin-patient-identity h3 {
+  margin: 0.2rem 0 0;
+}
+.twin-profile-weight {
+  display: grid;
+  gap: 0.25rem;
+  text-align: right;
+}
+.twin-profile-weight span,
+.twin-metric-card span {
+  color: var(--muted, #64748b);
+  font-size: 0.85rem;
+}
+.twin-profile-weight strong {
+  font-size: 1.15rem;
+}
+.twin-section-title {
+  margin-top: 0.4rem;
+}
+.twin-section-title span {
+  color: var(--muted, #64748b);
+  font-size: 0.82rem;
+}
+.twin-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.twin-metric-card {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border, #dbe3ea);
+  border-radius: 0.9rem;
+  background: var(--surface, #fff);
+}
+.twin-metric-card strong {
+  overflow-wrap: anywhere;
+  font-size: 1.2rem;
+}
+.twin-risk-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.twin-risk-card {
+  min-width: 0;
+  padding: 1.2rem;
+  border: 1px solid var(--border, #dbe3ea);
+  border-radius: 1rem;
+  background: var(--surface, #fff);
+}
+.twin-risk-card p {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.twin-risk-score {
+  margin: 0.8rem 0 0.3rem;
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.twin-risk-level {
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.twin-disclaimer,
+.twin-dashboard-note {
+  color: var(--muted, #64748b);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.twin-flag-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0;
+}
+.twin-flag-list span {
+  text-transform: capitalize;
+}
+.twin-dashboard-note {
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .twin-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .twin-risk-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 520px) {
+  .twin-dashboard-heading,
+  .twin-section-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .twin-patient-strip {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .twin-profile-weight {
+    width: 100%;
+    padding-left: 4rem;
+    text-align: left;
+  }
+  .twin-error {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

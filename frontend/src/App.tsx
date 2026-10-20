@@ -86,6 +86,72 @@ type HistoryRecord = {
   model_inputs?: Record<string, number>;
 };
 
+type DigitalTwinSnapshot = {
+  patient?: {
+    patient_id?: string;
+    name?: string;
+    age?: number | null;
+    sex?: string;
+    height?: number | null;
+    weight?: number | null;
+  };
+  health_state?: {
+    heart_rate?: number | null;
+    systolic_bp?: number | null;
+    diastolic_bp?: number | null;
+    spo2?: number | null;
+    glucose?: number | null;
+    cholesterol?: number | null;
+    sleep_hours?: number | null;
+    water_intake?: number | null;
+    steps?: number | null;
+    exercise_minutes?: number | null;
+    stress_level?: number | null;
+    weight?: number | null;
+    bmi?: number | null;
+  };
+  risk?: {
+    risk_score?: number | null;
+    risk_level?: string;
+    recommendation?: string;
+    factors?: Array<{ label?: string; name?: string; points?: number }>;
+    severe_flags?: string[];
+  };
+  risk_source?: string;
+  latest_ml_assessment?: {
+    date?: string;
+    created_at?: string;
+    patient_snapshot?: {
+      patient_id?: string;
+      name?: string;
+      age?: number;
+      sex?: string;
+    };
+    prediction?: Prediction;
+    model_inputs?: Record<string, number>;
+  } | null;
+};
+
+function formatMeasurement(value: number | null | undefined, unit = ''): string {
+  if (value == null || !Number.isFinite(value)) return 'Not recorded';
+  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return unit ? `${formatted} ${unit}` : formatted;
+}
+
+function formatSnapshotDate(value?: string): string {
+  if (!value) return 'Date not available';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+}
+
 const EMPTY_PATIENT: PatientInput = {
   age: '', sex: '', cp: '', trestbps: '', chol: '', fbs: '', restecg: '', thalach: '',
   exang: '', oldpeak: '', slope: '', ca: '', thal: '',
@@ -220,6 +286,11 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
   const [historyRefresh, setHistoryRefresh] = useState(0);
+  const [twinSnapshot, setTwinSnapshot] = useState<DigitalTwinSnapshot | null>(null);
+  const [twinLoading, setTwinLoading] = useState(false);
+  const [twinError, setTwinError] = useState('');
+  const [twinRefresh, setTwinRefresh] = useState(0);
+
 
   useEffect(() => {
     let active = true;
@@ -233,6 +304,37 @@ function App() {
       .catch(() => { if (active) setApiStatus('offline'); });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (view !== 'overview') return;
+
+    const controller = new AbortController();
+
+    async function loadTwinSnapshot() {
+      setTwinLoading(true);
+      setTwinError('');
+
+      try {
+        const response = await fetch('/api/digital-twin/snapshot', {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`Snapshot request failed (${response.status})`);
+        }
+        const body = await response.json() as DigitalTwinSnapshot;
+        if (!controller.signal.aborted) setTwinSnapshot(body);
+      } catch {
+        if (!controller.signal.aborted) {
+          setTwinError('Could not load the digital twin snapshot. Check that the backend is running, then retry.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setTwinLoading(false);
+      }
+    }
+
+    void loadTwinSnapshot();
+    return () => controller.abort();
+  }, [view, twinRefresh]);
 
   useEffect(() => {
     if (view !== 'history') return;
@@ -481,6 +583,175 @@ function App() {
                   <div className="heart-glow"><HeartPulse size={72} strokeWidth={1.45} /></div>
                   <div className="visual-caption"><span className="visual-pulse" /> Research model <small>not a medical device</small></div>
                 </div>
+              </section>
+
+              <section className="twin-dashboard">
+                <div className="twin-dashboard-heading">
+                  <div>
+                    <span className="twin-eyebrow">LIVE DIGITAL TWIN</span>
+                    <h2>Patient snapshot</h2>
+                    <p>Current profile and recorded measurements from the backend.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="twin-refresh-button"
+                    onClick={() => setTwinRefresh((value) => value + 1)}
+                    disabled={twinLoading}
+                  >
+                    {twinLoading ? 'Refreshing…' : '↻ Refresh'}
+                  </button>
+                </div>
+
+                {twinLoading && !twinSnapshot && (
+                  <div className="twin-message">Loading patient snapshot…</div>
+                )}
+
+                {twinError && (
+                  <div className="twin-error" role="alert">
+                    <span>{twinError}</span>
+                    <button type="button" onClick={() => setTwinRefresh((value) => value + 1)}>
+                      Try again
+                    </button>
+                  </div>
+                )}
+
+                {twinSnapshot && (
+                  <>
+                    <div className="twin-patient-strip">
+                      <div className="twin-avatar" aria-hidden="true">+</div>
+                      <div className="twin-patient-identity">
+                        <span className="twin-eyebrow">ACTIVE PROFILE</span>
+                        <h3>{twinSnapshot.patient?.name || 'Unnamed patient'}</h3>
+                        <p>
+                          ID: {twinSnapshot.patient?.patient_id || 'Not recorded'}
+                          {' · '}
+                          Age: {twinSnapshot.patient?.age ?? 'Not recorded'}
+                          {' · '}
+                          Sex: {twinSnapshot.patient?.sex || 'Not recorded'}
+                        </p>
+                      </div>
+                      <div className="twin-profile-weight">
+                        <span>Profile weight</span>
+                        <strong>{formatMeasurement(twinSnapshot.patient?.weight, 'kg')}</strong>
+                      </div>
+                    </div>
+
+                    <div className="twin-section-title">
+                      <h3>Recorded health measurements</h3>
+                      <span>Missing values are shown explicitly</span>
+                    </div>
+
+                    <div className="twin-metrics-grid">
+                      <div className="twin-metric-card">
+                        <span>Heart rate</span>
+                        <strong>{formatMeasurement(twinSnapshot.health_state?.heart_rate, 'bpm')}</strong>
+                      </div>
+                      <div className="twin-metric-card">
+                        <span>Blood pressure</span>
+                        <strong>
+                          {twinSnapshot.health_state?.systolic_bp != null &&
+                           twinSnapshot.health_state?.diastolic_bp != null
+                            ? `${twinSnapshot.health_state.systolic_bp}/${twinSnapshot.health_state.diastolic_bp} mmHg`
+                            : 'Not recorded'}
+                        </strong>
+                      </div>
+                      <div className="twin-metric-card">
+                        <span>Oxygen saturation</span>
+                        <strong>{formatMeasurement(twinSnapshot.health_state?.spo2, '%')}</strong>
+                      </div>
+                      <div className="twin-metric-card">
+                        <span>Glucose</span>
+                        <strong>{formatMeasurement(twinSnapshot.health_state?.glucose, 'mg/dL')}</strong>
+                      </div>
+                      <div className="twin-metric-card">
+                        <span>Cholesterol</span>
+                        <strong>{formatMeasurement(twinSnapshot.health_state?.cholesterol, 'mg/dL')}</strong>
+                      </div>
+                      <div className="twin-metric-card">
+                        <span>Sleep</span>
+                        <strong>{formatMeasurement(twinSnapshot.health_state?.sleep_hours, 'hours')}</strong>
+                      </div>
+                    </div>
+
+                    <div className="twin-section-title">
+                      <h3>Risk and model assessment</h3>
+                      <span>Two separate sources</span>
+                    </div>
+
+                    <div className="twin-risk-grid">
+                      <article className="twin-risk-card">
+                        <span className="twin-eyebrow">DIGITAL TWIN</span>
+                        <h3>Rule-based prototype score</h3>
+                        <div className="twin-risk-score">
+                          {formatMeasurement(twinSnapshot.risk?.risk_score)}
+                        </div>
+                        <p className="twin-risk-level">
+                          Level: {(twinSnapshot.risk?.risk_level || 'Not available').replace(/_/g, ' ')}
+                        </p>
+                        {twinSnapshot.risk?.recommendation && (
+                          <p>{twinSnapshot.risk.recommendation}</p>
+                        )}
+                        {Array.isArray(twinSnapshot.risk?.severe_flags) &&
+                         twinSnapshot.risk.severe_flags.length > 0 && (
+                          <div className="twin-flag-list">
+                            <strong>Flags recorded</strong>
+                            {twinSnapshot.risk.severe_flags.map((flag, index) => (
+                              <span key={`${flag}-${index}`}>{flag.replace(/_/g, ' ')}</span>
+                            ))}
+                          </div>
+                        )}
+                        <p className="twin-disclaimer">
+                          Demonstration logic only; this score is not clinically validated and is not a diagnosis.
+                        </p>
+                      </article>
+
+                      <article className="twin-risk-card twin-ml-card">
+                        <span className="twin-eyebrow">MACHINE LEARNING</span>
+                        <h3>Latest saved ML assessment</h3>
+                        {twinSnapshot.latest_ml_assessment?.prediction ? (
+                          <>
+                            <div className="twin-risk-score">
+                              {formatMeasurement(twinSnapshot.latest_ml_assessment.prediction.risk_score)}
+                            </div>
+                            <p>
+                              Category: {twinSnapshot.latest_ml_assessment.prediction.risk_category || 'Not available'}
+                            </p>
+                            <p>
+                              Model output: {twinSnapshot.latest_ml_assessment.prediction.predicted_class ?? 'Not available'}
+                            </p>
+                            <p>
+                              Assessment profile: {twinSnapshot.latest_ml_assessment.patient_snapshot?.name || 'Name not saved'}
+                            </p>
+                            <p>
+                              Saved: {formatSnapshotDate(
+                                twinSnapshot.latest_ml_assessment.created_at ||
+                                twinSnapshot.latest_ml_assessment.date
+                              )}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p>No saved ML assessment is available yet.</p>
+                            <button
+                              type="button"
+                              className="twin-refresh-button"
+                              onClick={() => setView('assessment')}
+                            >
+                              Start an assessment →
+                            </button>
+                          </>
+                        )}
+                        <p className="twin-disclaimer">
+                          This is a model output from a saved assessment. It may use inputs different from the current profile measurements and is not a medical diagnosis.
+                        </p>
+                      </article>
+                    </div>
+                  </>
+                )}
+
+                <p className="twin-dashboard-note">
+                  CardioTwin is a prototype for learning and demonstration. Do not use these scores to make medical decisions.
+                </p>
               </section>
 
               <div className="section-heading-row"><div><h2>Your workspace</h2><p>What is available in this version of CardioTwin.</p></div><span className="quiet-label">Prototype overview</span></div>

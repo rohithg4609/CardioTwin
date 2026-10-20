@@ -31,9 +31,8 @@ data/processed/evaluation/
 data/raw/
 
 # Trained ML models
-models/*
-!models/cardio_model.pkl
-models/
+/models/*
+!/models/cardio_model.pkl
 # Frontend dependencies and build output
 frontend/node_modules/
 frontend/dist/

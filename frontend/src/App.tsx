@@ -301,19 +301,38 @@ function App() {
       const payload = Object.fromEntries(
         (Object.keys(EMPTY_PATIENT) as PatientKey[]).map((key) => [key, Number(patient[key])]),
       );
-      const response = await fetch('/api/predict', {
+      const response = await fetch('/api/assessment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const body = await response.json() as Prediction | { detail?: string };
+
+      const body = await response.json() as {
+        assessment?: Prediction;
+        saved_record?: unknown;
+        notice?: string;
+        detail?: string;
+      };
+
       if (!response.ok) {
-        throw new Error('The server could not produce a result. Check that the API and saved model are ready, then try again.');
+        throw new Error(
+          body.detail ||
+          'The server could not save the assessment. Please try again.'
+        );
       }
-      const result = body as Prediction;
-      if (typeof result.risk_score !== 'number' || !Array.isArray(result.explanations)) {
-        throw new Error('The API response did not match the expected CardioTwin prediction format.');
+
+      const result = body.assessment;
+
+      if (
+        !result ||
+        typeof result.risk_score !== 'number' ||
+        !Array.isArray(result.explanations)
+      ) {
+        throw new Error(
+          'The API response did not match the expected CardioTwin prediction format.'
+        );
       }
+
       setPrediction(result);
       setView('assessment');
       scrollToTop();
@@ -393,7 +412,7 @@ function App() {
                   <h2>Health information can feel complex.<br /><em>Let's make the next step clearer.</em></h2>
                   <p>Use values from a clinical record to explore how a research model responds. No result is a diagnosis, and you never need to guess a value.</p>
                   <button className="button button-light" onClick={beginAssessment}>Start an assessment <ArrowRight size={17} /></button>
-                  <div className="hero-footnote"><ShieldCheck size={14} /> The portal does not save assessment history.</div>
+                  <div className="hero-footnote"><ShieldCheck size={14} /> Completed assessments are saved to the digital-twin history.</div>
                 </div>
                 <div className="hero-visual" aria-hidden="true">
                   <div className="hero-orbit orbit-one" />
@@ -414,8 +433,8 @@ function App() {
                 </article>
                 <article className="overview-card view-enter">
                   <div className="card-icon blue-icon"><HeartPulse size={20} /></div>
-                  <div className="overview-card-top"><h3>Digital twin history</h3><span className="status-tag status-next">Not connected</span></div>
-                  <p>The backend module is in the repository, but a patient-history API and saved timeline are not connected to this frontend yet.</p>
+                  <div className="overview-card-top"><h3>Digital twin history</h3><span className="status-tag status-ready">Saving enabled</span></div>
+                  <p>Assessment saving is connected to the backend. A browsable history timeline is the next frontend step.</p>
                   <button className="card-link muted-link" onClick={() => navigate('guide')}>View current scope <ArrowRight size={15} /></button>
                 </article>
                 <article className="overview-card view-enter">
@@ -501,8 +520,8 @@ function App() {
                 <article className="guide-card view-enter"><div className="guide-number">04</div><div className="guide-icon"><Stethoscope size={21} /></div><h2>Review with a professional</h2><p>Do not start, stop, or change treatment from this output. A qualified healthcare professional can consider your symptoms, history, examination, and appropriate tests.</p></article>
               </div>
               <section className="panel scope-panel view-enter"><div className="panel-heading"><div><h2>What's actually connected today?</h2><p>This avoids showing demo data as if it were a real patient record.</p></div><div className="panel-heading-icon"><CheckCircle2 size={19} /></div></div>
-                <div className="scope-row"><span className="scope-status connected"><Check size={14} /></span><div><strong>ML prediction API</strong><p>Connected through the existing FastAPI `POST /predict` endpoint.</p></div><span className="status-tag status-ready">Connected</span></div>
-                <div className="scope-row"><span className="scope-status waiting"><Info size={14} /></span><div><strong>Digital twin timeline</strong><p>Python modules exist in the repository, but no patient-history API is wired to this frontend.</p></div><span className="status-tag status-next">Next phase</span></div>
+                <div className="scope-row"><span className="scope-status connected"><Check size={14} /></span><div><strong>ML prediction API</strong><p>Connected through FastAPI `POST /api/assessment`, which runs and saves the model output.</p></div><span className="status-tag status-ready">Connected</span></div>
+                <div className="scope-row"><span className="scope-status waiting"><Info size={14} /></span><div><strong>Digital twin timeline</strong><p>Assessment saving is connected to FastAPI; a browsable timeline remains to be added.</p></div><span className="status-tag status-next">Next phase</span></div>
                 <div className="scope-row"><span className="scope-status waiting"><Info size={14} /></span><div><strong>Medical-care guidance</strong><p>Source modules exist, but they need carefully designed API contracts and safety validation before the patient portal can use them.</p></div><span className="status-tag status-next">Next phase</span></div>
               </section>
               <div className="disclaimer-strip"><ShieldAlert size={19} /><p><strong>Urgent symptoms should never wait for an AI result.</strong> For severe or persistent chest pain, difficulty breathing, fainting, or other urgent symptoms, seek local emergency care.</p></div>
@@ -539,7 +558,7 @@ function PredictionView({ prediction, onNew, onOverview }: { prediction: Predict
           <h3>{modelClass}</h3>
           <p>The model assigned the submitted values to this class. This does not confirm or rule out a medical condition.</p>
           <div className="class-code-row"><span>Model type</span><code>Random Forest prototype</code></div>
-          <div className="class-code-row"><span>Assessment history</span><code>Not saved</code></div>
+          <div className="class-code-row"><span>Assessment history</span><code>Saved</code></div>
         </article>
       </div>
 

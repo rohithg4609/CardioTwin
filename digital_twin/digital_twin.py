@@ -243,20 +243,31 @@ class DigitalTwin:
 
     def get_snapshot(self) -> Dict[str, Any]:
         """
-        Return a combined snapshot of the digital twin.
+        Return the digital-twin snapshot with separate rule-based
+        risk and latest ML cardiovascular assessment.
         """
         self.calculate_risk()
+
+        records = self.get_all_records()
+
+        latest_ml_assessment = next(
+            (
+                record
+                for record in reversed(records)
+                if record.get("record_type")
+                == "ml_cardiovascular_assessment"
+            ),
+            None,
+        )
 
         return {
             "patient": self.patient.to_dict(),
             "health_state": self.health_state.to_dict(),
             "latest_history": self.get_latest_record(),
+            "latest_ml_assessment": latest_ml_assessment,
+            "risk_source": "rule_based_prototype",
             "risk": self.risk_tracker.get_result(),
         }
-
-    # ------------------------------------------------------------------
-    # Representation
-    # ------------------------------------------------------------------
 
     def __repr__(self) -> str:
         return (

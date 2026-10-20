@@ -490,6 +490,8 @@ class TestDigitalTwin(unittest.TestCase):
             "patient",
             "health_state",
             "latest_history",
+            "latest_ml_assessment",
+            "risk_source",
             "risk",
         }
 
@@ -497,6 +499,11 @@ class TestDigitalTwin(unittest.TestCase):
             set(snapshot.keys()),
             expected_keys,
         )
+        self.assertEqual(
+            snapshot["risk_source"],
+            "rule_based_prototype",
+        )
+        self.assertIsNone(snapshot["latest_ml_assessment"])
 
     def test_snapshot_contains_patient_data(self):
         patient = self.make_patient()

@@ -321,8 +321,14 @@ def save_digital_twin_checkpoint(payload: CheckpointInput):
 @app.post("/api/assessment")
 def run_and_save_assessment(patient: PredictionPatient):
     """Run the ML prediction and persist it to the digital-twin history."""
-    _load_patient()  # Saving an assessment requires an existing profile.
+    active_patient = _load_patient()
     patient_data = patient.model_dump()
+    patient_snapshot = {
+        "patient_id": active_patient.patient_id,
+        "name": active_patient.name,
+        "age": active_patient.age,
+        "sex": active_patient.sex,
+    }
     try:
         result = jsonable_encoder(predict_patient(patient_data))
         now = datetime.now().astimezone()
@@ -330,6 +336,7 @@ def run_and_save_assessment(patient: PredictionPatient):
             "record_type": "ml_cardiovascular_assessment",
             "date": now.date().isoformat(),
             "created_at": now.isoformat(),
+            "patient_snapshot": patient_snapshot,
             "model_inputs": patient_data,
             "prediction": result,
         }

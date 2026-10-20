@@ -76,6 +76,12 @@ type HistoryRecord = {
   record_type?: string;
   date?: string;
   created_at?: string;
+  patient_snapshot?: {
+    patient_id?: string;
+    name?: string;
+    age?: number;
+    sex?: string;
+  };
   prediction?: Prediction;
   model_inputs?: Record<string, number>;
 };
@@ -644,6 +650,21 @@ function App() {
                         ? new Date(record.created_at).toLocaleString()
                         : record.date || 'Date unavailable'}
                     </p>
+
+                    {record.patient_snapshot && (
+                      <p className="history-patient">
+                        Patient: <strong>{record.patient_snapshot.name || 'Unnamed patient'}</strong>
+                        {record.patient_snapshot.patient_id
+                          ? ` ? ID: ${record.patient_snapshot.patient_id}`
+                          : ''}
+                        {record.patient_snapshot.age != null
+                          ? ` ? Age: ${record.patient_snapshot.age}`
+                          : ''}
+                        {record.patient_snapshot.sex
+                          ? ` ? ${record.patient_snapshot.sex}`
+                          : ''}
+                      </p>
+                    )}
 
                     {record.prediction ? (
                       <>

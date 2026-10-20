@@ -26,7 +26,7 @@ import {
 
 gsap.registerPlugin(useGSAP);
 
-type View = 'overview' | 'assessment' | 'guide';
+type View = 'overview' | 'assessment' | 'history' | 'guide';
 type ApiStatus = 'checking' | 'online' | 'offline';
 type PatientKey =
   | 'age'
@@ -72,6 +72,13 @@ type Prediction = {
 };
 
 type StepConfig = { eyebrow: string; title: string; description: string; fields: FieldConfig[] };
+type HistoryRecord = {
+  record_type?: string;
+  date?: string;
+  created_at?: string;
+  prediction?: Prediction;
+  model_inputs?: Record<string, number>;
+};
 
 const EMPTY_PATIENT: PatientInput = {
   age: '', sex: '', cp: '', trestbps: '', chol: '', fbs: '', restecg: '', thalach: '',
@@ -140,6 +147,7 @@ const STEPS: StepConfig[] = [
 const VIEW_TITLES: Record<View, string> = {
   overview: 'Overview',
   assessment: 'Risk assessment',
+  history: 'Assessment history',
   guide: 'How CardioTwin works',
 };
 
@@ -202,6 +210,10 @@ function App() {
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyRefresh, setHistoryRefresh] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -216,6 +228,46 @@ function App() {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (view !== 'history') return;
+
+    const controller = new AbortController();
+
+    async function loadHistory() {
+      setHistoryLoading(true);
+      setHistoryError('');
+
+      try {
+        const response = await fetch('/api/health-records', {
+          signal: controller.signal,
+        });
+
+        const body = await response.json() as {
+          records?: HistoryRecord[];
+          count?: number;
+          detail?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(body.detail || 'Unable to load assessment history.');
+        }
+
+        setHistoryRecords(Array.isArray(body.records) ? body.records : []);
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+
+        setHistoryError(
+          error instanceof Error ? error.message : 'Unable to load history.'
+        );
+      } finally {
+        if (!controller.signal.aborted) setHistoryLoading(false);
+      }
+    }
+
+    void loadHistory();
+
+    return () => controller.abort();
+  }, [view, historyRefresh]);
   useGSAP(() => {
     const media = gsap.matchMedia();
     media.add('(prefers-reduced-motion: no-preference)', () => {
@@ -370,7 +422,9 @@ function App() {
           <button className={`nav-item ${view === 'assessment' ? 'active' : ''}`} onClick={() => navigate('assessment')} aria-current={view === 'assessment' ? 'page' : undefined}>
             <ClipboardCheck size={18} /><span>Risk assessment</span>
           </button>
-          <button className={`nav-item ${view === 'guide' ? 'active' : ''}`} onClick={() => navigate('guide')} aria-current={view === 'guide' ? 'page' : undefined}>
+          <button className={`nav-item ${view === 'history' ? 'active' : ''}`} onClick={() => navigate('history')} aria-current={view === 'history' ? 'page' : undefined}>
+            <Activity size={18} /><span>Assessment history</span>
+          </button>          <button className={`nav-item ${view === 'guide' ? 'active' : ''}`} onClick={() => navigate('guide')} aria-current={view === 'guide' ? 'page' : undefined}>
             <BookOpen size={18} /><span>How it works</span>
           </button>
         </nav>
@@ -510,6 +564,138 @@ function App() {
             </section>
           )}
 
+          {view === 'history' && (
+            <section className="view-enter" aria-labelledby="history-title">
+              <div className="page-heading">
+                <div>
+                  <p className="eyebrow">YOUR DIGITAL TWIN</p>
+                  <h1 id="history-title">Assessment history</h1>
+                  <p className="page-subtitle">
+                    Review previously saved research-model assessments.
+                    These outputs are not clinical diagnoses.
+                  </p>
+                </div>
+                <button
+                  className="button button-secondary"
+                  onClick={() => setHistoryRefresh((value) => value + 1)}
+                  disabled={historyLoading}
+                >
+                  <Activity size={16} />
+                  {historyLoading ? 'Loading...' : 'Refresh history'}
+                </button>
+              </div>
+
+              {historyError && (
+                <div className="warning-banner" role="alert">
+                  <Info size={19} />
+                  <div>
+                    <strong>History could not be loaded</strong>
+                    <p>{historyError}</p>
+                    <p>Check that the backend is running, then refresh.</p>
+                  </div>
+                </div>
+              )}
+
+              {historyLoading && historyRecords.length === 0 && (
+                <section className="panel history-state">
+                  <LoaderCircle size={22} className="spin" />
+                  <p>Loading saved records...</p>
+                </section>
+              )}
+
+              {!historyLoading && !historyError && historyRecords.length === 0 && (
+                <section className="panel history-state">
+                  <HeartPulse size={28} />
+                  <h2>No saved records yet</h2>
+                  <p>Complete an assessment to see its saved record here.</p>
+                  <button className="button button-primary" onClick={beginAssessment}>
+                    Start an assessment <ArrowRight size={16} />
+                  </button>
+                </section>
+              )}
+
+              <div className="history-list">
+                {historyRecords.map((record, index) => (
+                  <article
+                    className="panel history-record"
+                    key={`${record.created_at || record.date || 'record'}-${index}`}
+                  >
+                    <div className="history-record-heading">
+                      <div>
+                        <p className="eyebrow">
+                          {record.record_type === 'ml_cardiovascular_assessment'
+                            ? 'ML ASSESSMENT'
+                            : 'DIGITAL TWIN RECORD'}
+                        </p>
+                        <h2>
+                          {record.record_type === 'ml_cardiovascular_assessment'
+                            ? 'Cardiovascular assessment'
+                            : (record.record_type || 'Saved record')
+                                .replaceAll('_', ' ')}
+                        </h2>
+                      </div>
+                      <span className="status-tag status-ready">
+                        Saved
+                      </span>
+                    </div>
+
+                    <p className="history-date">
+                      {record.created_at
+                        ? new Date(record.created_at).toLocaleString()
+                        : record.date || 'Date unavailable'}
+                    </p>
+
+                    {record.prediction ? (
+                      <>
+                        <div className="history-metrics">
+                          <div>
+                            <span>Model score</span>
+                            <strong>
+                              {record.prediction.risk_score.toFixed(2)}
+                            </strong>
+                          </div>
+                          <div>
+                            <span>Model output</span>
+                            <strong>
+                              {record.prediction.predicted_class}
+                            </strong>
+                          </div>
+                          <div>
+                            <span>Model category</span>
+                            <strong>
+                              {record.prediction.risk_category}
+                            </strong>
+                          </div>
+                        </div>
+
+                        {record.prediction.explanations?.length > 0 && (
+                          <details className="history-details">
+                            <summary>View model explanations</summary>
+                            <ul>
+                              {record.prediction.explanations.map((item) => (
+                                <li key={item.feature}>
+                                  <strong>{item.feature}</strong>
+                                  {' — '}{item.description}
+                                  {' · '}{item.direction}
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
+                      </>
+                    ) : (
+                      <p>This record does not contain an ML prediction.</p>
+                    )}
+                  </article>
+                ))}
+              </div>
+
+              <p className="history-disclaimer">
+                Historical model outputs are for research demonstration only.
+                They do not establish a diagnosis or replace professional medical care.
+              </p>
+            </section>
+          )}
           {view === 'guide' && (
             <section className="view-enter" aria-labelledby="guide-title">
               <div className="page-heading"><div><p className="eyebrow">PLAIN-LANGUAGE GUIDE</p><h1 id="guide-title">Know what the tool can — and cannot — tell you.</h1><p className="page-subtitle">The goal is transparency. You deserve to understand where a result comes from and where its limits are.</p></div></div>
